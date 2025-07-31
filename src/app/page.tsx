@@ -1,103 +1,149 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+
+const ISSMap = dynamic(() => import('@/components/ISSMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="bg-gray-100 rounded-lg w-full h-96 flex items-center justify-center">
+      <p className="text-gray-500">Loading map...</p>
+    </div>
+  )
+});
+
+// Demo data
+import { fetchISSPosition, fetchPeopleInSpace } from '@/utils/api';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [position, setPosition] = useState<{ latitude: number; longitude: number; timestamp: number } | null>(null);
+  const [crew, setCrew] = useState<any[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+  useEffect(() => {
+    setIsMounted(true);
+    setCurrentTime(new Date());
+  }, []);
+
+
+  useEffect(() => {
+    if (!isMounted) return;
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isMounted]);
+
+
+  useEffect(() => {
+    if (!isMounted) return;
+    const fetchData = async () => {
+      const issPosition = await fetchISSPosition();
+      setPosition(issPosition);
+      setLastUpdated(new Date());
+      const peopleData = await fetchPeopleInSpace();
+      console.log('peopleData:', peopleData);
+      if (Array.isArray(peopleData.people)) {
+        const issCrew = peopleData.people.filter((a: any) => a.craft === 'ISS');
+        console.log('ISS crew:', issCrew);
+        setCrew(issCrew);
+      } else {
+        setCrew([]);
+      }
+    };
+    fetchData();
+    const intervalId = setInterval(fetchData, 5000);
+    return () => clearInterval(intervalId);
+  }, [isMounted]);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Loading ISS data...</p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">ISS Tracker</h1>
+          <p className="text-gray-600">
+            Track the International Space Station in real-time
+          </p>
+          <div className="mt-2 text-sm text-gray-500">
+            Current UTC Time: {currentTime ? currentTime.toUTCString() : 'Loading...'}
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">ISS Location</h2>
+              <div className="mb-4">
+                {position ? (
+                  <>
+                    <p className="text-gray-700">
+                      Latitude: <span className="font-mono">{position.latitude.toFixed(4)}°</span>
+                    </p>
+                    <p className="text-gray-700">
+                      Longitude: <span className="font-mono">{position.longitude.toFixed(4)}°</span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-gray-500">Loading ISS position...</p>
+                )}
+                <p className="text-sm text-gray-500 mt-2">
+                  Last updated: {lastUpdated.toUTCString()}
+                </p>
+              </div>
+              <div className="h-96 w-full">
+                <ISSMap position={position} />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800">ISS Crew</h2>
+              <p className="text-gray-700 mb-4">
+                Currently <span className="font-bold text-blue-600">{crew.length}</span> astronauts aboard the ISS:
+              </p>
+              <ul className="space-y-2">
+                {crew.map((astronaut, index) => (
+                  <li key={index} className="text-gray-700">
+                    • {astronaut.name}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-gray-500 mt-4">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">About ISS</h2>
+              <p className="text-gray-700 mb-4">
+                The International Space Station (ISS) orbits Earth at an average altitude of 420 km,
+                traveling at a speed of 28,000 km/h, completing about 16 orbits per day.
+              </p>
+              <p className="text-sm text-gray-500">
+                Data updates every 5 seconds
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
